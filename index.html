@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Salvium Stats</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .sidebar {
+            background-color: #1a1a1a;
+            padding: 2rem;
+            position: fixed;
+            height: 100vh;
+            width: 250px;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            padding: 1.5rem;
+            background-color: #1a1a1a;
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .header span {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 1.5rem;
+            width: 100%;
+        }
+
+        .card {
+            background-color: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #333;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        .card-icon {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 2.5rem;
+            height: 2.5rem;
+            opacity: 0.6;
+            filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(255, 255, 255, 0.4));
+            transition: opacity 0.2s, filter 0.2s;
+        }
+
+        .card:hover .card-icon {
+            opacity: 1;
+            filter: brightness(0) invert(1) drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+        }
+
+        .chart-container {
+            background-color: #1a1a1a;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #333;
+            margin-top: 1.5rem;
+            position: relative;
+        }
+
+        #priceChart {
+            width: 100%;
+            height: 400px;
+        }
+
+        .card h2 {
+            color: #00ff00;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .card p {
+            color: #a0a0a0;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                height: auto;
+                width: 100%;
+                padding: 1rem;
+                flex-direction: row;
+                justify-content: space-between;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+
+            .sidebar img {
+                width: 6rem;
+            }
+
+            #lastUpdate {
+                font-size: 0.875rem;
+            }
+
+            .header span {
+                font-size: 1.25rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+
+            .card h2 {
+                font-size: 1.25rem;
+            }
+
+            .card p {
+                font-size: 0.875rem;
+            }
+
+            #priceChart {
+                height: 300px;
+            }
+
+            .content {
+                padding: 1rem;
+            }
+        }
+    </style>
+</head>
+<body class="bg-[#1a1a1a] text-white min-h-screen flex flex-col">
+    <div class="flex-grow flex flex-col md:flex-row">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <img src="Salvium-logo_REV.png" alt="Salvium Logo" class="w-32 md:w-40" />
+            <div class="md:mt-8 space-y-2 md:space-y-4">
+                <div class="text-gray-400 text-xs md:text-sm">Last Updated</div>
+                <div id="lastUpdate" class="text-green-400"></div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex flex-col w-full md:ml-64">
+            <!-- Header -->
+            <div class="header">
+                <span>Salvium Stats</span>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Current Salvium Price</p>
+                        <h2 id="price">Loading...</h2>
+                        <div class="text-sm text-gray-400 mt-2" id="price24hChange"></div>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Market Cap</p>
+                        <h2 id="marketCap">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Supply</p>
+                        <h2 id="supply">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Coins Burnt (last 30 days)</p>
+                        <h2 id="burnt">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Block Height</p>
+                        <h2 id="blockHeight">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Network Hashrate</p>
+                        <h2 id="networkHash">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Total Yield</p>
+                        <h2 id="totalYield">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Average Yield Rate</p>
+                        <h2 id="averageYieldRate">Loading...</h2>
+                    </div>
+                    <div class="card">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                        <p>Yield Distribution</p>
+                        <ul id="yieldDistribution" class="list-disc pl-5 text-green-400">Loading...</ul>
+                    </div>
+                </div>
+                
+                <!-- Charts Section -->
+                <div class="chart-container">
+                    <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                    <h3 class="text-lg md:text-xl font-bold">Price History (30 Days)</h3>
+                    <div id="priceChart"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer class="text-center py-4 md:py-6 text-gray-400 text-xs md:text-sm">
+        <p>Made with ❤️ by a community contributor</p>
+    </footer>
+
+    <script>
+        const apiUrl = "https://seed01.salvium.io:19081/json_rpc";
+        const liveCoinWatchUrl = "https://api.livecoinwatch.com/coins/single";
+        const liveCoinWatchApiKey = "b6807d61-488c-4ee3-a35e-5c08a12d314c";
+
+        let circulatingSupply = 0;
+        let price = 0;
+
+        function updateLastUpdated() {
+            const now = new Date();
+            document.getElementById("lastUpdate").textContent = now.toLocaleTimeString();
+        }
+
+        function calculateMarketCap() {
+            if (circulatingSupply > 0 && price > 0) {
+                const marketCap = circulatingSupply * price;
+                document.getElementById("marketCap").textContent = `$${(marketCap / 1e6).toFixed(2)}M`;
+            } else {
+                document.getElementById("marketCap").textContent = "N/A";
+            }
+        }
+
+        async function fetchNodeInfo() {
+            try {
+                const response = await axios.post(apiUrl, {
+                    jsonrpc: "2.0",
+                    id: "0",
+                    method: "get_info",
+                });
+
+                const data = response.data.result;
+
+                document.getElementById("blockHeight").textContent = data.height || "N/A";
+
+                if (data.difficulty && data.target) {
+                    const hashrate = (data.difficulty / data.target) / 1e6;
+                    document.getElementById("networkHash").textContent = `${hashrate.toFixed(2)} MH/s`;
+                } else {
+                    document.getElementById("networkHash").textContent = "No Data";
+                }
+            } catch (error) {
+                console.error("Error fetching node info:", error);
+            }
+        }
+
+        async function fetchSupplyInfo() {
+            try {
+                const response = await axios.post(apiUrl, {
+                    jsonrpc: "2.0",
+                    id: "0",
+                    method: "get_supply_info",
+                });
+
+                const supplyData = response.data.result.supply_tally;
+
+                const rawSupply = supplyData.find((item) => item.currency_label === "SAL")?.amount || 0;
+                const rawBurnt = supplyData.find((item) => item.currency_label === "BURN")?.amount || 0;
+
+                circulatingSupply = rawSupply / 1e8;
+                const burnt = rawBurnt / 1e8;
+
+                document.getElementById("supply").textContent = `${circulatingSupply.toFixed(2)} SAL`;
+                document.getElementById("burnt").textContent = `${burnt.toFixed(2)} SAL`;
+
+                calculateMarketCap();
+            } catch (error) {
+                console.error("Error fetching supply info:", error);
+                document.getElementById("supply").textContent = "Error";
+                document.getElementById("burnt").textContent = "Error";
+            }
+        }
+
+        async function fetchPriceInfo() {
+            try {
+                const response = await axios.post(
+                    liveCoinWatchUrl,
+                    {
+                        currency: "USD",
+                        code: "__SAL",
+                        meta: true,
+                    },
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-api-key": liveCoinWatchApiKey,
+                        },
+                    }
+                );
+
+                const data = response.data;
+
+                if (data && data.rate) {
+                    price = data.rate;
+                    document.getElementById("price").textContent = `$${price.toFixed(4)}`;
+                } else {
+                    throw new Error("Price data missing.");
+                }
+
+                calculateMarketCap();
+            } catch (error) {
+                console.error("Error fetching price info:", error);
+                document.getElementById("price").textContent = "Error";
+                document.getElementById("marketCap").textContent = "Error";
+            }
+        }
+
+        async function fetchYieldInfo() {
+            try {
+                const response = await axios.post(apiUrl, {
+                    jsonrpc: "2.0",
+                    id: "0",
+                    method: "get_yield_info",
+                });
+
+                const yieldData = response.data.result;
+
+                if (!yieldData || yieldData.status !== "OK") {
+                    throw new Error("Invalid yield data.");
+                }
+
+                document.getElementById("totalYield").textContent = `${(yieldData.total_yield / 1e8).toFixed(2)} SAL`;
+                const averageYieldRate = yieldData.yield_per_stake / 100;
+                document.getElementById("averageYieldRate").textContent = `${averageYieldRate.toFixed(2)}%`;
+
+                const distributionList = document.getElementById("yieldDistribution");
+                distributionList.innerHTML = "";
+
+                if (yieldData.yield_distribution && Array.isArray(yieldData.yield_distribution) && yieldData.yield_distribution.length > 0) {
+                    yieldData.yield_distribution.forEach((item) => {
+                        const li = document.createElement("li");
+                        li.textContent = `${item.asset_type}: ${(item.yield_amount / 1e8).toFixed(2)} SAL`;
+                        distributionList.appendChild(li);
+                    });
+                } else {
+                    distributionList.innerHTML = "<li>No distribution data available.</li>";
+                }
+            } catch (error) {
+                console.error("Error fetching yield info:", error);
+                document.getElementById("totalYield").textContent = "Error";
+                document.getElementById("averageYieldRate").textContent = "Error";
+                document.getElementById("yieldDistribution").innerHTML = "<li>Error fetching distribution data.</li>";
+            }
+        }
+
+        async function fetchHistoricalPrices() {
+            try {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(start.getDate() - 30);
+
+                const response = await axios.post(
+                    'https://api.livecoinwatch.com/coins/single/history',
+                    {
+                        currency: "USD",
+                        code: "__SAL",
+                        start: start.getTime(),
+                        end: end.getTime(),
+                        meta: true
+                    },
+                    {
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-api-key': liveCoinWatchApiKey
+                        }
+                    }
+                );
+
+                const history = response.data.history;
+                if (!history || !Array.isArray(history)) {
+                    throw new Error('Invalid historical data format');
+                }
+
+                const dates = [];
+                const prices = [];
+
+                history.forEach(point => {
+                    dates.push(new Date(point.date));
+                    prices.push(point.rate);
+                });
+
+                // Calculate price change
+                const firstPrice = prices[0];
+                const lastPrice = prices[prices.length - 1];
+                const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
+                const priceChangeColor = priceChange >= 0 ? '#00ff00' : '#ff4444';
+
+                // Main price line with gradient
+                const mainLine = {
+                    x: dates,
+                    y: prices,
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: 'SAL Price',
+                    line: {
+                        color: '#00ff00',
+                        width: 2.5,
+                        shape: 'spline'
+                    },
+                    fill: 'tonexty',
+                    fillcolor: {
+                        type: 'gradient',
+                        gradient: {
+                            type: 'vertical',
+                            color: ['rgba(0,255,0,0.2)', 'rgba(0,255,0,0)']
+                        }
+                    },
+                    hovertemplate: '<b>$%{y:.4f}</b><br>%{x|%b %d, %Y}<extra></extra>'
+                };
+
+                const layout = {
+                    paper_bgcolor: 'rgba(0,0,0,0)',
+                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    font: {
+                        color: '#ffffff',
+                        family: 'Arial, sans-serif'
+                    },
+                    xaxis: {
+                        showgrid: false,
+                        zeroline: false,
+                        title: 'Date',
+                        tickformat: '%b %d',
+                        range: [start, end],
+                        rangeslider: {
+                            visible: true,
+                            bgcolor: '#333333',
+                            bordercolor: '#00ff00',
+                            thickness: 0.1
+                        }
+                    },
+                    yaxis: {
+                        showgrid: true,
+                        gridcolor: 'rgba(0,255,0,0.1)',
+                        gridwidth: 1,
+                        zeroline: false,
+                        title: {
+                            text: 'Price (USD)',
+                            font: { color: '#00ff00' }
+                        },
+                        tickprefix: '$',
+                        tickformat: '.4f',
+                        fixedrange: false
+                    },
+                    margin: { t: 50, r: 30, b: 40, l: 60 },
+                    showlegend: false,
+                    annotations: [{
+                        x: 1,
+                        y: 1,
+                        xref: 'paper',
+                        yref: 'paper',
+                        text: `${priceChange >= 0 ? '▲' : '▼'} ${Math.abs(priceChange).toFixed(2)}%`,
+                        font: {
+                            size: 16,
+                            color: priceChangeColor
+                        },
+                        showarrow: false,
+                        xanchor: 'right',
+                        yanchor: 'bottom'
+                    }],
+                    shapes: [{
+                        type: 'rect',
+                        xref: 'paper',
+                        yref: 'paper',
+                        x0: 0,
+                        y0: 0,
+                        x1: 1,
+                        y1: 1,
+                        line: {
+                            color: 'rgba(0,255,0,0.1)',
+                            width: 1
+                        }
+                    }],
+                    hovermode: 'x unified',
+                    hoverlabel: {
+                        bgcolor: '#000000',
+                        font: { color: '#00ff00', size: 14 },
+                        bordercolor: '#00ff00'
+                    },
+                    dragmode: 'zoom',
+                    selectdirection: 'h'
+                };
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToAdd: ['drawline', 'drawopenpath', 'eraseshape'],
+                    modeBarButtonsToRemove: ['autoScale2d', 'resetScale2d'],
+                    modeBarButtons: [['zoom2d', 'pan2d', 'zoomIn2d', 'zoomOut2d', 'resetViews']],
+                    toImageButtonOptions: {
+                        format: 'png',
+                        filename: 'salvium_price_chart',
+                        height: 800,
+                        width: 1200,
+                        scale: 2
+                    }
+                };
+
+                Plotly.newPlot('priceChart', [mainLine], layout, config);
+            } catch (error) {
+                console.error('Error fetching historical prices:', error);
+                const chartContainer = document.getElementById('priceChart');
+                chartContainer.innerHTML = '<div class="text-red-500 text-center py-8">Error loading historical price data</div>';
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            Promise.all([
+                fetchNodeInfo(),
+                fetchSupplyInfo(),
+                fetchPriceInfo(),
+                fetchYieldInfo(),
+                fetchHistoricalPrices()
+            ]).then(() => {
+                updateLastUpdated();
+            });
+
+            setInterval(() => {
+                Promise.all([
+                    fetchNodeInfo(),
+                    fetchSupplyInfo(),
+                    fetchPriceInfo(),
+                    fetchYieldInfo(),
+                    fetchHistoricalPrices()
+                ]).then(() => {
+                    updateLastUpdated();
+                });
+            }, 60000);
+        });
+    </script>
+</body>
+</html>
