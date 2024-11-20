@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Salvium Stats</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tippy.js/6.3.7/tippy.min.css">
+    <script src="https://unpkg.com/@popperjs/core@2"></script>
+    <script src="https://unpkg.com/tippy.js@6"></script>
     <style>
         body {
             font-family: "Arial", sans-serif;
@@ -14,6 +17,39 @@
             color: #ffffff;
         }
 
+        /* Theme Toggle Styles */
+        .theme-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 20;
+        }
+
+        .theme-toggle button {
+            background: #333;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle button:hover {
+            background: #444;
+        }
+
+        /* Remove loading animations */
+        .loading {
+            animation: none;
+            background: transparent;
+        }
+
+        .loading-bar {
+            display: none;
+        }
+
+        /* Card Styles */
         .sidebar {
             background-color: #1a1a1a;
             padding: 2rem;
@@ -36,8 +72,11 @@
         }
 
         .header span {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            letter-spacing: 1px;
         }
 
         .content {
@@ -145,16 +184,112 @@
                 padding: 1rem;
             }
         }
+
+        /* Dark/Light Mode Styles */
+        .dark {
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .light {
+            --bg-primary: #ffffff;        /* Pure white background */
+            --bg-secondary: #f8f9fa;      /* Very light gray for secondary elements */
+            --text-primary: #1a1a1a;      /* Almost black for primary text */
+            --text-secondary: #495057;    /* Dark gray for secondary text */
+            --text-heading: #212529;      /* Slightly darker for headings */
+            --accent-primary: #0d6efd;    /* Vibrant blue for accents */
+            --accent-hover: #0a58ca;      /* Darker blue for hover states */
+            --border-color: #dee2e6;      /* Light, soft border */
+            --shadow-color: rgba(0,0,0,0.08); /* Very subtle shadow */
+        }
+
+        .light body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+
+        .light h1, .light h2, .light h3, .light h4, .light h5, .light h6 {
+            color: var(--text-heading);
+            font-weight: 700;
+        }
+
+        .light .card-title {
+            color: var(--text-heading);
+            font-weight: 600;
+        }
+
+        .light .text-muted {
+            color: var(--text-secondary);
+        }
+
+        .light .card {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px var(--shadow-color);
+            color: var(--text-primary);
+        }
+
+        /* Ensure all text is visible */
+        .light *:not(.dark-text) {
+            color: var(--text-primary);
+        }
+
+        /* Specific fixes for potentially invisible elements */
+        .light .stat-value {
+            color: var(--text-heading);
+            font-weight: 600;
+        }
+
+        .light .chart-label {
+            color: var(--text-secondary);
+        }
+
+        /* Ensure links are visible */
+        .light a {
+            color: var(--accent-primary);
+            transition: color 0.2s ease;
+        }
+
+        .light a:hover {
+            color: var(--accent-hover);
+        }
+
+        /* Chart Adaptations for Light Mode */
+        .light .plotly-graph-div {
+            background-color: var(--bg-primary) !important;
+        }
+
+        /* Smooth Transition */
+        .theme-transition {
+            transition: 
+                background-color 0.3s ease, 
+                color 0.3s ease, 
+                border-color 0.3s ease;
+        }
     </style>
 </head>
 <body class="bg-[#1a1a1a] text-white min-h-screen flex flex-col">
+    <!-- Loading Bar -->
+    <div id="loadingBar" class="loading-bar hidden"></div>
+
+    <!-- Theme Toggle -->
+    <div class="theme-toggle fixed top-4 right-4 z-50">
+        <button 
+            id="themeToggle" 
+            class="w-10 h-10 flex items-center justify-center rounded-full focus:outline-none shadow-sm hover:shadow-md transition-all duration-200"
+        >
+            🌙
+        </button>
+    </div>
+
     <div class="flex-grow flex flex-col md:flex-row">
         <!-- Sidebar -->
         <div class="sidebar">
             <img src="Salvium-logo_REV.png" alt="Salvium Logo" class="w-32 md:w-40" />
             <div class="md:mt-8 space-y-2 md:space-y-4">
                 <div class="text-gray-400 text-xs md:text-sm">Last Updated</div>
-                <div id="lastUpdate" class="text-green-400"></div>
+                <div id="lastUpdated" class="text-green-400"></div>
             </div>
         </div>
         
@@ -168,59 +303,138 @@
             <!-- Content -->
             <div class="content">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div class="card">
+                    <div class="card" data-tippy-content="Current market price of Salvium in USD">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Current Salvium Price</p>
-                        <h2 id="price">Loading...</h2>
+                        <h2 id="price">$0.00</h2>
                         <div class="text-sm text-gray-400 mt-2" id="price24hChange"></div>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Total market value of all Salvium coins in circulation">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Market Cap</p>
-                        <h2 id="marketCap">Loading...</h2>
+                        <h2 id="marketCap">$0</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Total number of Salvium coins currently in circulation">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Supply</p>
-                        <h2 id="supply">Loading...</h2>
+                        <h2 id="supply">0 SAL</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Number of Salvium coins permanently removed from circulation in the last 30 days">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Coins Burnt (last 30 days)</p>
-                        <h2 id="burnt">Loading...</h2>
+                        <h2 id="burnt">0 SAL</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Current block height of the Salvium blockchain">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Block Height</p>
-                        <h2 id="blockHeight">Loading...</h2>
+                        <h2 id="blockHeight">0</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Total computational power of the Salvium network">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Network Hashrate</p>
-                        <h2 id="networkHash">Loading...</h2>
+                        <h2 id="networkHash">0 MH/s</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Total amount of Salvium earned through yield generation">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Total Yield</p>
-                        <h2 id="totalYield">Loading...</h2>
+                        <h2 id="totalYield">0 SAL</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Average rate of yield generation across the network">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Average Yield Rate</p>
-                        <h2 id="averageYieldRate">Loading...</h2>
+                        <h2 id="averageYieldRate">0%</h2>
                     </div>
-                    <div class="card">
+                    <div class="card" data-tippy-content="Distribution of yield across different node types">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Yield Distribution</p>
-                        <ul id="yieldDistribution" class="list-disc pl-5 text-green-400">Loading...</ul>
+                        <ul id="yieldDistribution" class="list-disc pl-5 text-green-400">
+                            <li>No distribution data available.</li>
+                        </ul>
                     </div>
                 </div>
-                
-                <!-- Charts Section -->
-                <div class="chart-container">
-                    <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
-                    <h3 class="text-lg md:text-xl font-bold">Price History (30 Days)</h3>
-                    <div id="priceChart"></div>
+                   <!-- Price History Graph -->
+                   <div class="mt-8 bg-[#1a1a1a] p-6 rounded-lg border border-[#333]">
+                    <div class="flex items-center mb-4">
+                        <img src="Salvium_ICON-WHT.png" alt="" class="w-8 h-8 mr-3" />
+                        <h3 class="text-xl font-bold">Price History (30 Days)</h3>
+                    </div>
+                    <div id="priceHistoryChart" class="w-full h-[400px]"></div>
+                </div>
+                <!-- Analytics Section -->
+                <div class="mt-8">
+                    <h3 class="text-xl font-bold mb-6">Market Analytics</h3>
+                    
+                    <!-- Market Stats -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                        <div class="card" data-tippy-content="24-hour trading volume">
+                            <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                            <p>24h Volume</p>
+                            <h2 id="volume24h">$0</h2>
+                        </div>
+                        <div class="card" data-tippy-content="Price change in the last 24 hours">
+                            <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                            <p>24h Change</p>
+                            <h2 id="priceChange24h">0%</h2>
+                        </div>
+                        <div class="card" data-tippy-content="All-time high price">
+                            <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
+                            <p>All-Time High</p>
+                            <h2 id="allTimeHigh">$0.48</h2>
+                        </div>
+                    </div>
+
+                    <!-- Mining Calculator -->
+                    <div class="bg-[#1a1a1a] p-6 rounded-lg border border-[#333] mb-6">
+                        <h4 class="text-lg font-semibold mb-4">Mining Profitability Calculator</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Hashrate (H/s)</label>
+                                <input type="number" id="hashrate" class="w-full bg-[#333] border border-[#444] rounded px-3 py-2 text-white" placeholder="Your hashrate">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Power Consumption (W)</label>
+                                <input type="number" id="power" class="w-full bg-[#333] border border-[#444] rounded px-3 py-2 text-white" placeholder="Power usage">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Power Cost ($/kWh)</label>
+                                <input type="number" id="powerCost" class="w-full bg-[#333] border border-[#444] rounded px-3 py-2 text-white" placeholder="Cost per kWh">
+                            </div>
+                            <div>
+                                <label class="block text-sm text-gray-400 mb-2">Pool Fee (%)</label>
+                                <input type="number" id="poolFee" class="w-full bg-[#333] border border-[#444] rounded px-3 py-2 text-white" value="1" placeholder="Pool fee">
+                            </div>
+                        </div>
+                        <button onclick="calculateMining()" class="bg-[#00ff00] text-black px-4 py-2 rounded hover:bg-[#00cc00] transition-colors">Calculate</button>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                            <div class="bg-[#222] p-4 rounded">
+                                <p class="text-sm text-gray-400">Estimated Daily Revenue</p>
+                                <p id="dailyRevenue" class="text-xl font-bold text-[#00ff00]">-</p>
+                            </div>
+                            <div class="bg-[#222] p-4 rounded">
+                                <p class="text-sm text-gray-400">Power Cost (Daily)</p>
+                                <p id="powerCostDaily" class="text-xl font-bold text-red-500">-</p>
+                            </div>
+                            <div class="bg-[#222] p-4 rounded">
+                                <p class="text-sm text-gray-400">Net Profit (Daily)</p>
+                                <p id="netProfit" class="text-xl font-bold">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Network Statistics -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Transaction Volume -->
+                        <div class="bg-[#1a1a1a] p-6 rounded-lg border border-[#333] mb-6">
+                            <h4 class="text-lg font-semibold mb-4">Transaction Volume (24h)</h4>
+                            <div id="txVolumeChart" class="h-64"></div>
+                        </div>
+                        
+                        <!-- Market Comparison -->
+                        <div class="bg-[#1a1a1a] p-6 rounded-lg border border-[#333] mb-6">
+                            <h4 class="text-lg font-semibold mb-4">Market Comparison</h4>
+                            <div id="marketComparisonChart" class="h-64"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -232,15 +446,22 @@
     <script>
         const apiUrl = "https://seed01.salvium.io:19081/json_rpc";
         const liveCoinWatchUrl = "https://api.livecoinwatch.com/coins/single";
-        const liveCoinWatchApiKey = "b6807d61-488c-4ee3-a35e-5c08a12d314c";
+        const API_CONFIG = {
+            LIVECOINWATCH: {
+                BASE_URL: 'https://api.livecoinwatch.com',
+                API_KEY: 'b80a7b75-f83f-48b5-9ae7-e80bf6bf2459',
+                HEADERS: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': 'b80a7b75-f83f-48b5-9ae7-e80bf6bf2459'
+                }
+            },
+            SALVIUM_NODE: {
+                BASE_URL: 'https://seed01.salvium.io:19081'
+            }
+        };
 
         let circulatingSupply = 0;
         let price = 0;
-
-        function updateLastUpdated() {
-            const now = new Date();
-            document.getElementById("lastUpdate").textContent = now.toLocaleTimeString();
-        }
 
         function calculateMarketCap() {
             if (circulatingSupply > 0 && price > 0) {
@@ -311,10 +532,7 @@
                         meta: true,
                     },
                     {
-                        headers: {
-                            "Content-Type": "application/json",
-                            "x-api-key": liveCoinWatchApiKey,
-                        },
+                        headers: API_CONFIG.LIVECOINWATCH.HEADERS
                     }
                 );
 
@@ -373,14 +591,44 @@
             }
         }
 
-        async function fetchHistoricalPrices() {
+        // Debugging function to log errors
+        function logError(context, error) {
+            console.error(`[SALVIUM DEBUG] Error in ${context}:`, error);
+            if (error.response) {
+                // The request was made and the server responded with a status code
+                console.error('Response data:', error.response.data);
+                console.error('Response status:', error.response.status);
+                console.error('Response headers:', error.response.headers);
+            } else if (error.request) {
+                // The request was made but no response was received
+                console.error('Request data:', error.request);
+            } else {
+                // Something happened in setting up the request that triggered an Error
+                console.error('Error message:', error.message);
+            }
+        }
+
+        async function safeFetchWithLogging(fetchFunction, context) {
             try {
+                console.log(`[SALVIUM DEBUG] Starting ${context}`);
+                const result = await fetchFunction();
+                console.log(`[SALVIUM DEBUG] ${context} completed successfully`);
+                return result;
+            } catch (error) {
+                logError(context, error);
+                throw error;
+            }
+        }
+
+        async function fetchPriceHistoryGraph() {
+            try {
+                console.log('[SALVIUM DEBUG] Fetching price history graph...');
                 const end = new Date();
-                const start = new Date();
-                start.setDate(start.getDate() - 30);
+                const start = new Date(end);
+                start.setDate(start.getDate() - 30); // 30 days ago
 
                 const response = await axios.post(
-                    'https://api.livecoinwatch.com/coins/single/history',
+                    `${API_CONFIG.LIVECOINWATCH.BASE_URL}/coins/single/history`,
                     {
                         currency: "USD",
                         code: "__SAL",
@@ -389,172 +637,456 @@
                         meta: true
                     },
                     {
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-api-key': liveCoinWatchApiKey
-                        }
+                        headers: API_CONFIG.LIVECOINWATCH.HEADERS
                     }
                 );
 
+                console.log('[SALVIUM DEBUG] Price history response:', response.data);
                 const history = response.data.history;
-                if (!history || !Array.isArray(history)) {
-                    throw new Error('Invalid historical data format');
+                
+                if (!history || !Array.isArray(history) || history.length === 0) {
+                    throw new Error('Invalid or empty price history data');
                 }
 
-                const dates = [];
-                const prices = [];
+                const times = history.map(point => new Date(point.date));
+                const prices = history.map(point => point.rate || 0);
 
-                history.forEach(point => {
-                    dates.push(new Date(point.date));
-                    prices.push(point.rate);
-                });
-
-                // Calculate price change
-                const firstPrice = prices[0];
-                const lastPrice = prices[prices.length - 1];
-                const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
-                const priceChangeColor = priceChange >= 0 ? '#00ff00' : '#ff4444';
-
-                // Main price line with gradient
-                const mainLine = {
-                    x: dates,
+                const trace = {
+                    x: times,
                     y: prices,
                     type: 'scatter',
                     mode: 'lines',
-                    name: 'SAL Price',
+                    name: 'Price',
                     line: {
                         color: '#00ff00',
-                        width: 2.5,
+                        width: 2,
                         shape: 'spline'
                     },
-                    fill: 'tonexty',
-                    fillcolor: {
-                        type: 'gradient',
-                        gradient: {
-                            type: 'vertical',
-                            color: ['rgba(0,255,0,0.2)', 'rgba(0,255,0,0)']
-                        }
-                    },
-                    hovertemplate: '<b>$%{y:.4f}</b><br>%{x|%b %d, %Y}<extra></extra>'
+                    fill: 'tozeroy',
+                    fillcolor: 'rgba(0, 255, 0, 0.1)',
+                    hovertemplate: '<b>$%{y:.4f}</b><br>%{x|%Y-%m-%d}<extra></extra>'
                 };
 
                 const layout = {
-                    paper_bgcolor: 'rgba(0,0,0,0)',
-                    plot_bgcolor: 'rgba(0,0,0,0)',
+                    paper_bgcolor: '#1a1a1a',
+                    plot_bgcolor: '#1a1a1a',
                     font: {
                         color: '#ffffff',
                         family: 'Arial, sans-serif'
                     },
-                    xaxis: {
-                        showgrid: false,
-                        zeroline: false,
-                        title: 'Date',
-                        tickformat: '%b %d',
-                        range: [start, end],
-                        rangeslider: {
-                            visible: true,
-                            bgcolor: '#333333',
-                            bordercolor: '#00ff00',
-                            thickness: 0.1
-                        }
-                    },
                     yaxis: {
+                        title: 'Price (USD)',
                         showgrid: true,
-                        gridcolor: 'rgba(0,255,0,0.1)',
-                        gridwidth: 1,
-                        zeroline: false,
-                        title: {
-                            text: 'Price (USD)',
-                            font: { color: '#00ff00' }
-                        },
-                        tickprefix: '$',
-                        tickformat: '.4f',
-                        fixedrange: false
+                        gridcolor: '#333333',
+                        tickprefix: '$'
                     },
-                    margin: { t: 50, r: 30, b: 40, l: 60 },
+                    xaxis: {
+                        showgrid: true,
+                        gridcolor: '#333333',
+                        type: 'date'
+                    },
+                    margin: { t: 10, r: 10, b: 30, l: 60 },
                     showlegend: false,
-                    annotations: [{
-                        x: 1,
-                        y: 1,
-                        xref: 'paper',
-                        yref: 'paper',
-                        text: `${priceChange >= 0 ? '▲' : '▼'} ${Math.abs(priceChange).toFixed(2)}%`,
-                        font: {
-                            size: 16,
-                            color: priceChangeColor
-                        },
-                        showarrow: false,
-                        xanchor: 'right',
-                        yanchor: 'bottom'
-                    }],
-                    shapes: [{
-                        type: 'rect',
-                        xref: 'paper',
-                        yref: 'paper',
-                        x0: 0,
-                        y0: 0,
-                        x1: 1,
-                        y1: 1,
-                        line: {
-                            color: 'rgba(0,255,0,0.1)',
-                            width: 1
-                        }
-                    }],
                     hovermode: 'x unified',
                     hoverlabel: {
                         bgcolor: '#000000',
-                        font: { color: '#00ff00', size: 14 },
-                        bordercolor: '#00ff00'
-                    },
-                    dragmode: 'zoom',
-                    selectdirection: 'h'
+                        font: { color: '#00ff00' }
+                    }
                 };
 
                 const config = {
                     responsive: true,
-                    displayModeBar: true,
-                    displaylogo: false,
-                    modeBarButtonsToAdd: ['drawline', 'drawopenpath', 'eraseshape'],
-                    modeBarButtonsToRemove: ['autoScale2d', 'resetScale2d'],
-                    modeBarButtons: [['zoom2d', 'pan2d', 'zoomIn2d', 'zoomOut2d', 'resetViews']],
-                    toImageButtonOptions: {
-                        format: 'png',
-                        filename: 'salvium_price_chart',
-                        height: 800,
-                        width: 1200,
-                        scale: 2
-                    }
+                    displayModeBar: false
                 };
 
-                Plotly.newPlot('priceChart', [mainLine], layout, config);
+                console.log('[SALVIUM DEBUG] Attempting to plot price history chart...');
+                Plotly.newPlot('priceHistoryChart', [trace], layout, config);
+                console.log('[SALVIUM DEBUG] Price history chart rendered successfully');
             } catch (error) {
-                console.error('Error fetching historical prices:', error);
-                const chartContainer = document.getElementById('priceChart');
-                chartContainer.innerHTML = '<div class="text-red-500 text-center py-8">Error loading historical price data</div>';
+                logError('Price History Graph', error);
+                const chartElement = document.getElementById('priceHistoryChart');
+                if (chartElement) {
+                    chartElement.innerHTML = `
+                        <div class="text-center text-red-500 p-4">
+                            <p>Error Loading Price History</p>
+                            <small>${error.message}</small>
+                        </div>
+                    `;
+                }
             }
         }
 
-        document.addEventListener("DOMContentLoaded", () => {
-            Promise.all([
-                fetchNodeInfo(),
-                fetchSupplyInfo(),
-                fetchPriceInfo(),
-                fetchYieldInfo(),
-                fetchHistoricalPrices()
-            ]).then(() => {
-                updateLastUpdated();
-            });
+        async function updateTransactionVolumeChart() {
+            try {
+                console.log('[SALVIUM DEBUG] Updating transaction volume chart...');
+                const response = await axios.post('https://api.livecoinwatch.com/coins/single/history', {
+                    currency: 'USD',
+                    code: '__SAL',
+                    start: Date.now() - (24 * 60 * 60 * 1000), // Last 24 hours
+                    end: Date.now(),
+                    meta: true
+                }, {
+                    headers: {
+                        'x-api-key': API_CONFIG.LIVECOINWATCH.API_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-            setInterval(() => {
-                Promise.all([
+                console.log('[SALVIUM DEBUG] Transaction volume response:', response.data);
+                const data = response.data;
+                
+                if (!data || !Array.isArray(data.history)) {
+                    throw new Error('Invalid transaction data format');
+                }
+
+                const times = data.history.map(point => new Date(point.date));
+                const volumes = data.history.map(point => point.volume || 0);
+
+                const trace = {
+                    x: times,
+                    y: volumes,
+                    type: 'bar',
+                    marker: {
+                        color: '#00ff00',
+                        opacity: 0.6
+                    },
+                    hovertemplate: '<b>$%{y:,.2f}</b><br>%{x|%H:%M}<extra></extra>'
+                };
+
+                const layout = {
+                    paper_bgcolor: '#1a1a1a',
+                    plot_bgcolor: '#1a1a1a',
+                    font: {
+                        color: '#ffffff',
+                        family: 'Arial, sans-serif'
+                    },
+                    yaxis: {
+                        title: 'Volume (USD)',
+                        showgrid: true,
+                        gridcolor: '#333333',
+                        tickprefix: '$',
+                        tickformat: ',.0f'
+                    },
+                    xaxis: {
+                        gridcolor: '#333333'
+                    },
+                    margin: { t: 20, l: 60, r: 10, b: 50 },
+                    bargap: 0.05,
+                    showlegend: false,
+                    hovermode: 'x unified',
+                    hoverlabel: {
+                        bgcolor: '#333',
+                        font: { color: '#fff' }
+                    }
+                };
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: false
+                };
+
+                Plotly.newPlot('txVolumeChart', [trace], layout, config);
+                console.log('[SALVIUM DEBUG] Transaction volume chart rendered');
+            } catch (error) {
+                logError('Transaction Volume Chart', error);
+                document.getElementById('txVolumeChart').innerHTML = 
+                    '<p class="text-red-500 text-center">Error loading transaction volume data</p>';
+            }
+        }
+
+        async function updateMarketComparisonChart() {
+            try {
+                console.log('[SALVIUM DEBUG] Updating market comparison chart...');
+                const response = await axios.post('https://api.livecoinwatch.com/coins/list', {
+                    currency: 'USD',
+                    sort: 'rank',
+                    order: 'ascending',
+                    offset: 0,
+                    limit: 50,
+                    meta: true
+                }, {
+                    headers: {
+                        'x-api-key': API_CONFIG.LIVECOINWATCH.API_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                console.log('[SALVIUM DEBUG] Market comparison response:', response.data);
+                const coins = response.data;
+                
+                // Filter for BTC and XMR
+                const filteredCoins = coins.filter(coin => 
+                    coin.code === 'BTC' || coin.code === 'XMR'
+                );
+
+                // Get Salvium data
+                const salviumResponse = await axios.post('https://api.livecoinwatch.com/coins/single', {
+                    currency: 'USD',
+                    code: '__SAL',
+                    meta: true
+                }, {
+                    headers: {
+                        'x-api-key': API_CONFIG.LIVECOINWATCH.API_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const salviumData = salviumResponse.data;
+
+                // Prepare data for the chart
+                const coinsData = [
+                    {
+                        name: 'Salvium',
+                        cap: salviumData.rate * (salviumData.volume || 0), // Estimate market cap
+                        code: '__SAL'
+                    },
+                    ...filteredCoins.map(coin => ({
+                        name: coin.name,
+                        cap: coin.cap || 0,
+                        code: coin.code
+                    }))
+                ];
+
+                const trace = {
+                    x: coinsData.map(coin => coin.name),
+                    y: coinsData.map(coin => coin.cap),
+                    type: 'bar',
+                    marker: {
+                        color: coinsData.map(coin => 
+                            coin.code === '__SAL' ? '#00ff00' : 
+                            coin.code === 'XMR' ? '#ff6600' : 
+                            '#f2a900'
+                        )
+                    }
+                };
+
+                const layout = {
+                    paper_bgcolor: '#1a1a1a',
+                    plot_bgcolor: '#1a1a1a',
+                    font: {
+                        color: '#ffffff',
+                        family: 'Arial, sans-serif'
+                    },
+                    yaxis: {
+                        title: 'Market Cap (USD)',
+                        type: 'log',
+                        range: [0, 12], // Adjust this range to make Salvium visible
+                        gridcolor: '#333333'
+                    },
+                    xaxis: {
+                        gridcolor: '#333333'
+                    },
+                    margin: { t: 30, l: 60, r: 10, b: 50 },
+                    showlegend: false,
+                    annotations: coinsData.map((coin, i) => ({
+                        x: coin.name,
+                        y: coin.cap,
+                        text: `$${(coin.cap).toLocaleString()}`,
+                        showarrow: false,
+                        yshift: 10
+                    }))
+                };
+
+                const config = {
+                    responsive: true
+                };
+
+                Plotly.newPlot('marketComparisonChart', [trace], layout, config);
+                console.log('[SALVIUM DEBUG] Market comparison chart rendered');
+            } catch (error) {
+                logError('Market Comparison Chart', error);
+                document.getElementById('marketComparisonChart').innerHTML = 
+                    '<p class="text-red-500 text-center">Error loading market comparison data</p>';
+            }
+        }
+
+        async function updateCharts() {
+            console.log('[SALVIUM DEBUG] Updating all charts...');
+            try {
+                await Promise.all([
+                    safeFetchWithLogging(fetchPriceHistoryGraph, 'Price History Graph'),
+                    safeFetchWithLogging(updateTransactionVolumeChart, 'Transaction Volume Chart'),
+                    safeFetchWithLogging(updateMarketComparisonChart, 'Market Comparison Chart')
+                ]);
+                console.log('[SALVIUM DEBUG] All charts updated successfully');
+            } catch (error) {
+                logError('Update Charts', error);
+            }
+        }
+
+        async function fetchPriceHistory() {
+            try {
+                // Fetch single coin data first
+                console.log('[SALVIUM DEBUG] Attempting to fetch single coin data for __SAL');
+                const coinResponse = await axios.post(`${API_CONFIG.LIVECOINWATCH.BASE_URL}/coins/single`, {
+                    code: '__SAL',
+                    currency: 'USD',
+                    meta: true
+                }, {
+                    headers: API_CONFIG.LIVECOINWATCH.HEADERS
+                });
+
+                // Detailed logging of coin response
+                console.log('[SALVIUM DEBUG] Coin Single Response FULL:', JSON.stringify(coinResponse.data, null, 2));
+                console.log('[SALVIUM DEBUG] Coin Single Data Keys:', Object.keys(coinResponse.data));
+
+                // Explicitly log specific fields we're interested in
+                console.log('[SALVIUM DEBUG] Volume Fields:', {
+                    volume24: coinResponse.data.volume24,
+                    volume: coinResponse.data.volume
+                });
+                console.log('[SALVIUM DEBUG] Delta Fields:', {
+                    deltaDay: coinResponse.data.delta?.day,
+                    deltaWeek: coinResponse.data.delta?.week,
+                    deltaMonth: coinResponse.data.delta?.month
+                });
+                console.log('[SALVIUM DEBUG] Price Fields:', {
+                    rate: coinResponse.data.rate,
+                    allTimeHigh: coinResponse.data.allTimeHighUSD
+                });
+
+                // Update 24h Volume
+                const volumeElement = document.getElementById('volume24h');
+                const volume = coinResponse.data.volume24 || coinResponse.data.volume || 0;
+                volumeElement.textContent = volume > 0 
+                    ? `$${Number(volume).toLocaleString(undefined, {maximumFractionDigits: 2})}`
+                    : 'Unavailable';
+                console.log(`[SALVIUM DEBUG] 24h Volume: ${volume}`);
+
+                // Update 24h Price Change
+                const priceChangeElement = document.getElementById('priceChange24h');
+                const priceChange = coinResponse.data.delta?.day ? 
+                    ((coinResponse.data.delta.day - 1) * 100) : 0;
+                
+                const formattedChange = priceChange.toFixed(2);
+                priceChangeElement.textContent = `${formattedChange}%`;
+                priceChangeElement.style.color = priceChange >= 0 ? '#00ff00' : '#ff0000';
+                console.log(`[SALVIUM DEBUG] 24h Price Change: ${formattedChange}%`);
+
+                // Update All-Time High
+                const allTimeHighElement = document.getElementById('allTimeHigh');
+                const allTimeHigh = coinResponse.data.allTimeHighUSD || 0.4850;
+                allTimeHighElement.textContent = `$${Number(allTimeHigh).toFixed(4)}`;
+                console.log(`[SALVIUM DEBUG] All-Time High: $${allTimeHigh}`);
+
+            } catch (error) {
+                console.error('[SALVIUM DEBUG] Full Error in fetchPriceHistory:', error);
+                
+                // Detailed error logging
+                if (error.response) {
+                    console.error('[SALVIUM DEBUG] Error Response Data:', error.response.data);
+                    console.error('[SALVIUM DEBUG] Error Response Status:', error.response.status);
+                    console.error('[SALVIUM DEBUG] Error Response Headers:', error.response.headers);
+                } else if (error.request) {
+                    console.error('[SALVIUM DEBUG] Error Request:', error.request);
+                } else {
+                    console.error('[SALVIUM DEBUG] Error Message:', error.message);
+                }
+
+                // Error handling
+                document.getElementById('volume24h').textContent = 'Error';
+                document.getElementById('priceChange24h').textContent = 'Error';
+                document.getElementById('allTimeHigh').textContent = '$0.4850';
+            }
+        }
+
+        // Function to update the last updated timestamp
+        function updateLastUpdated() {
+            try {
+                const now = new Date();
+                const lastUpdatedElement = document.getElementById('lastUpdated');
+                if (lastUpdatedElement) {
+                    lastUpdatedElement.textContent = now.toLocaleString('en-US', {
+                        hour: 'numeric', 
+                        minute: 'numeric', 
+                        second: 'numeric', 
+                        hour12: true
+                    });
+                } else {
+                    console.warn('[SALVIUM DEBUG] Last updated element not found');
+                }
+            } catch (error) {
+                console.error('[SALVIUM DEBUG] Error updating last updated time:', error);
+            }
+        }
+
+        // Theme Toggle Functionality
+        const themeToggle = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+
+        // Function to apply theme
+        function applyTheme(theme) {
+            // Add transition class to body for smooth color change
+            document.body.classList.add('theme-transition');
+
+            if (theme === 'dark') {
+                htmlElement.classList.add('dark');
+                htmlElement.classList.remove('light');
+                localStorage.setItem('theme', 'dark');
+                themeToggle.innerHTML = '🌙'; // Moon icon for dark mode switch
+                document.body.style.backgroundColor = '#1a1a1a';
+                document.body.style.color = '#ffffff';
+            } else {
+                htmlElement.classList.remove('dark');
+                htmlElement.classList.add('light');
+                localStorage.setItem('theme', 'light');
+                themeToggle.innerHTML = '☀️'; // Sun icon for light mode switch
+                document.body.style.backgroundColor = '#ffffff';
+                document.body.style.color = '#1a1a1a';
+            }
+
+            // Remove transition class after animation
+            setTimeout(() => {
+                document.body.classList.remove('theme-transition');
+            }, 300);
+        }
+
+        // Theme toggle event listener
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        });
+
+        // Initialize theme on page load
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            applyTheme(savedTheme);
+        }
+
+        // Run theme initialization when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeTheme);
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            console.log('[SALVIUM DEBUG] DOM Content Loaded - Starting initialization...');
+            try {
+                await Promise.all([
                     fetchNodeInfo(),
                     fetchSupplyInfo(),
                     fetchPriceInfo(),
-                    fetchYieldInfo(),
-                    fetchHistoricalPrices()
-                ]).then(() => {
+                    fetchYieldInfo()
+                ]);
+                console.log('[SALVIUM DEBUG] Initial data fetch complete');
+                updateLastUpdated();
+                await updateCharts();
+            } catch (error) {
+                logError('Initial Data Fetch', error);
+            }
+        
+            setInterval(async () => {
+                console.log('[SALVIUM DEBUG] Running periodic update...');
+                try {
+                    await Promise.all([
+                        fetchNodeInfo(),
+                        fetchSupplyInfo(),
+                        fetchPriceInfo(),
+                        fetchYieldInfo()
+                    ]);
+                    console.log('[SALVIUM DEBUG] Periodic update complete');
                     updateLastUpdated();
-                });
+                    await updateCharts();
+                } catch (error) {
+                    logError('Periodic Update', error);
+                }
             }, 60000);
         });
     </script>
