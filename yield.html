@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salvium Yield Statistics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+        }
+
+        .sidebar {
+            background-color: #1a1a1a;
+            padding: 2rem;
+            position: fixed;
+            height: 100vh;
+            width: 250px;
+            border-right: 1px solid #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            padding: 1.5rem;
+            background-color: rgba(26, 26, 26, 0.95);
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .header span {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+            letter-spacing: 1px;
+        }
+
+        .content {
+            padding: 1.5rem;
+            width: 100%;
+        }
+
+        .footer {
+            background-color: rgba(26, 26, 26, 0.95);
+            border-top: 1px solid #333;
+            backdrop-filter: blur(10px);
+            padding: 2rem 0;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            padding: 0 1rem;
+        }
+
+        .footer-section h3 {
+            color: #00ff00;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: #00ff00;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-icons a {
+            color: #ffffff;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .social-icons a:hover {
+            color: #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid #333;
+            margin-top: 2rem;
+        }
+
+        /* Mobile styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                height: auto;
+                width: 100%;
+                padding: 1rem;
+                flex-direction: row;
+                justify-content: space-between;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+
+            .sidebar img {
+                width: 6rem;
+            }
+
+            #lastUpdate {
+                font-size: 0.875rem;
+            }
+
+            .header span {
+                font-size: 1.25rem;
+            }
+
+            .content {
+                padding: 1rem;
+            }
+
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .social-icons {
+                justify-content: center;
+            }
+        }
+
+        /* Cool gradient animation for header */
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ff00, #00cc00, #009900, #00ff00);
+            background-size: 300% 100%;
+            animation: gradient 4s linear infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="bg-[#1a1a1a] text-white min-h-screen flex flex-col">
+    <div class="flex-grow flex flex-col md:flex-row">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <img src="Salvium-logo_REV.png" alt="Salvium Logo" class="w-32 md:w-40" />
+            <div class="md:mt-8 space-y-2 md:space-y-4">
+                <div class="text-gray-400 text-xs md:text-sm">Last Updated</div>
+                <div id="lastUpdated" class="text-green-400"></div>
+            </div>
+            <!-- Navigation Links -->
+            <div class="mt-8 space-y-4">
+                <a href="index.html" class="text-white hover:text-green-400 transition-colors block">
+                    Stats Overview
+                </a>
+                <a href="yield.html" class="text-white hover:text-green-400 transition-colors block">
+                    Yield Statistics
+                </a>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex flex-col w-full md:ml-64">
+            <!-- Header -->
+            <div class="header">
+                <div class="container mx-auto flex justify-between items-center">
+                    <span>Yield Statistics</span>
+                    <div class="flex items-center space-x-4">
+                        <a href="https://salvium.io" target="_blank" class="text-white hover:text-green-400 transition-colors">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                        <a href="https://github.com/salvium" target="_blank" class="text-white hover:text-green-400 transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="content flex items-center justify-center min-h-[60vh]">
+                <div class="text-center">
+                    <h1 class="text-4xl font-bold text-green-400 mb-4">Coming Soon</h1>
+                    <p class="text-gray-400 text-lg">Yield statistics feature is currently under development.</p>
+                    <a href="index.html" class="mt-8 inline-block text-white hover:text-green-400 transition-colors">
+                        ← Return to Stats Overview
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="index.html">Stats Overview</a></li>
+                    <li><a href="yield.html">Yield Statistics</a></li>
+                    <li><a href="https://salvium.io" target="_blank">Main Website</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Resources</h3>
+                <ul>
+                    <li><a href="https://salvium.io/docs" target="_blank">Documentation</a></li>
+                    <li><a href="https://salvium.io/whitepaper" target="_blank">Whitepaper</a></li>
+                    <li><a href="https://salvium.io/blog" target="_blank">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Community</h3>
+                <div class="social-icons">
+                    <a href="https://github.com/salvium" target="_blank" title="GitHub">
+                        <i class="fab fa-github fa-lg"></i>
+                    </a>
+                    <a href="https://twitter.com/salvium_io" target="_blank" title="X (Twitter)">
+                        <i class="fab fa-x-twitter fa-lg"></i>
+                    </a>
+                    <a href="https://t.me/salvium_io" target="_blank" title="Telegram">
+                        <i class="fab fa-telegram fa-lg"></i>
+                    </a>
+                    <a href="https://discord.gg/salvium" target="_blank" title="Discord">
+                        <i class="fab fa-discord fa-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            <p class="text-gray-400 text-sm">made with <span class="text-red-500">❤️</span> by syyko</p>
+        </div>
+    </footer>
+
+    <script>
+        // Update last updated time
+        function updateLastUpdated() {
+            try {
+                const now = new Date();
+                const lastUpdatedElement = document.getElementById('lastUpdated');
+                if (lastUpdatedElement) {
+                    lastUpdatedElement.textContent = now.toLocaleString('en-US', {
+                        hour: 'numeric', 
+                        minute: 'numeric', 
+                        second: 'numeric', 
+                        hour12: true
+                    });
+                }
+            } catch (error) {
+                console.error('[SALVIUM DEBUG] Error updating last updated time:', error);
+            }
+        }
+
+        // Initial update
+        document.addEventListener('DOMContentLoaded', () => {
+            updateLastUpdated();
+            setInterval(updateLastUpdated, 60000);
+        });
+    </script>
+</body>
+</html> 

@@ -10,33 +10,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tippy.js/6.3.7/tippy.min.css">
     <script src="https://unpkg.com/@popperjs/core@2"></script>
     <script src="https://unpkg.com/tippy.js@6"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
             font-family: "Arial", sans-serif;
             background-color: #1a1a1a;
             color: #ffffff;
-        }
-
-        /* Theme Toggle Styles */
-        .theme-toggle {
-            position: fixed;
-            top: 1rem;
-            right: 1rem;
-            z-index: 20;
-        }
-
-        .theme-toggle button {
-            background: #333;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        .theme-toggle button:hover {
-            background: #444;
         }
 
         /* Remove loading animations */
@@ -64,11 +43,13 @@
 
         .header {
             padding: 1.5rem;
-            background-color: #1a1a1a;
+            background-color: rgba(26, 26, 26, 0.95);
             border-bottom: 1px solid #333;
             position: sticky;
             top: 0;
             z-index: 10;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
         .header span {
@@ -267,21 +248,106 @@
                 color 0.3s ease, 
                 border-color 0.3s ease;
         }
+
+        .footer {
+            background-color: rgba(26, 26, 26, 0.95);
+            border-top: 1px solid #333;
+            backdrop-filter: blur(10px);
+            padding: 2rem 0;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            padding: 0 1rem;
+        }
+
+        .footer-section h3 {
+            color: #00ff00;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .footer-section ul li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: #ffffff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .footer-section a:hover {
+            color: #00ff00;
+        }
+
+        .social-icons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .social-icons a {
+            color: #ffffff;
+            font-size: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .social-icons a:hover {
+            color: #00ff00;
+            transform: translateY(-2px);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid #333;
+            margin-top: 2rem;
+        }
+
+        /* Cool gradient animation for header */
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ff00, #00cc00, #009900, #00ff00);
+            background-size: 300% 100%;
+            animation: gradient 4s linear infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @media (max-width: 768px) {
+            .footer-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .social-icons {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body class="bg-[#1a1a1a] text-white min-h-screen flex flex-col">
     <!-- Loading Bar -->
     <div id="loadingBar" class="loading-bar hidden"></div>
-
-    <!-- Theme Toggle -->
-    <div class="theme-toggle fixed top-4 right-4 z-50">
-        <button 
-            id="themeToggle" 
-            class="w-10 h-10 flex items-center justify-center rounded-full focus:outline-none shadow-sm hover:shadow-md transition-all duration-200"
-        >
-            🌙
-        </button>
-    </div>
 
     <div class="flex-grow flex flex-col md:flex-row">
         <!-- Sidebar -->
@@ -291,13 +357,32 @@
                 <div class="text-gray-400 text-xs md:text-sm">Last Updated</div>
                 <div id="lastUpdated" class="text-green-400"></div>
             </div>
+            <!-- Navigation Links -->
+            <div class="mt-8 space-y-4">
+                <a href="index.html" class="text-white hover:text-green-400 transition-colors block">
+                    Stats Overview
+                </a>
+                <a href="yield.html" class="text-white hover:text-green-400 transition-colors block">
+                    Yield Statistics
+                </a>
+            </div>
         </div>
         
         <!-- Main Content -->
         <div class="flex flex-col w-full md:ml-64">
             <!-- Header -->
             <div class="header">
-                <span>Salvium Stats</span>
+                <div class="container mx-auto flex justify-between items-center">
+                    <span>Salvium Stats</span>
+                    <div class="flex items-center space-x-4">
+                        <a href="https://salvium.io" target="_blank" class="text-white hover:text-green-400 transition-colors">
+                            <i class="fas fa-globe"></i>
+                        </a>
+                        <a href="https://github.com/salvium" target="_blank" class="text-white hover:text-green-400 transition-colors">
+                            <i class="fab fa-github"></i>
+                        </a>
+                    </div>
+                </div>
             </div>
 
             <!-- Content -->
@@ -338,6 +423,7 @@
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
                         <p>Total Yield</p>
                         <h2 id="totalYield">0 SAL</h2>
+                        <a href="yield.html" class="text-sm text-green-400 hover:text-green-300 mt-2 inline-block">View detailed yield stats →</a>
                     </div>
                     <div class="card" data-tippy-content="Average rate of yield generation across the network">
                         <img src="Salvium_ICON-WHT.png" alt="" class="card-icon" />
@@ -447,8 +533,46 @@
             </div>
         </div>
     </div>
-    <footer class="text-center py-4 md:py-6 text-gray-400 text-xs md:text-sm">
-        <p>made with ❤️ by syyko</p>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="index.html">Stats Overview</a></li>
+                    <li><a href="yield.html">Yield Statistics</a></li>
+                    <li><a href="https://salvium.io" target="_blank">Main Website</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Resources</h3>
+                <ul>
+                    <li><a href="https://salvium.io/docs" target="_blank">Documentation</a></li>
+                    <li><a href="https://salvium.io/whitepaper" target="_blank">Whitepaper</a></li>
+                    <li><a href="https://salvium.io/blog" target="_blank">Blog</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Community</h3>
+                <div class="social-icons">
+                    <a href="https://github.com/salvium" target="_blank" title="GitHub">
+                        <i class="fab fa-github fa-lg"></i>
+                    </a>
+                    <a href="https://twitter.com/salvium_io" target="_blank" title="X (Twitter)">
+                        <i class="fab fa-x-twitter fa-lg"></i>
+                    </a>
+                    <a href="https://t.me/salvium_io" target="_blank" title="Telegram">
+                        <i class="fab fa-telegram fa-lg"></i>
+                    </a>
+                    <a href="https://discord.gg/salvium" target="_blank" title="Discord">
+                        <i class="fab fa-discord fa-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="copyright">
+            <p class="text-gray-400 text-sm">made with <span class="text-red-500">❤️</span> by syyko</p>
+        </div>
     </footer>
 
     <script>
@@ -1125,53 +1249,6 @@
                 console.error('[SALVIUM DEBUG] Error updating last updated time:', error);
             }
         }
-
-        // Theme Toggle Functionality
-        const themeToggle = document.getElementById('themeToggle');
-        const htmlElement = document.documentElement;
-
-        // Function to apply theme
-        function applyTheme(theme) {
-            // Add transition class to body for smooth color change
-            document.body.classList.add('theme-transition');
-
-            if (theme === 'dark') {
-                htmlElement.classList.add('dark');
-                htmlElement.classList.remove('light');
-                localStorage.setItem('theme', 'dark');
-                themeToggle.innerHTML = '🌙'; // Moon icon for dark mode switch
-                document.body.style.backgroundColor = '#1a1a1a';
-                document.body.style.color = '#ffffff';
-            } else {
-                htmlElement.classList.remove('dark');
-                htmlElement.classList.add('light');
-                localStorage.setItem('theme', 'light');
-                themeToggle.innerHTML = '☀️'; // Sun icon for light mode switch
-                document.body.style.backgroundColor = '#ffffff';
-                document.body.style.color = '#1a1a1a';
-            }
-
-            // Remove transition class after animation
-            setTimeout(() => {
-                document.body.classList.remove('theme-transition');
-            }, 300);
-        }
-
-        // Theme toggle event listener
-        themeToggle.addEventListener('click', () => {
-            const currentTheme = localStorage.getItem('theme') || 'dark';
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            applyTheme(newTheme);
-        });
-
-        // Initialize theme on page load
-        function initializeTheme() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
-            applyTheme(savedTheme);
-        }
-
-        // Run theme initialization when DOM is loaded
-        document.addEventListener('DOMContentLoaded', initializeTheme);
 
         document.addEventListener("DOMContentLoaded", async () => {
             console.log('[SALVIUM DEBUG] DOM Content Loaded - Starting initialization...');
