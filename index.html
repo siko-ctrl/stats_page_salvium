@@ -1230,6 +1230,89 @@
             }
         }
 
+        // Fetch yield information from Salvium API
+        async function fetchYieldInfo() {
+            try {
+                console.log('[SALVIUM DEBUG] Fetching yield data from API...');
+                const response = await axios.post(apiUrl, {
+                    jsonrpc: "2.0",
+                    id: "0",
+                    method: "get_yield_info"
+                });
+
+                console.log('[SALVIUM DEBUG] Raw yield API response:', response.data);
+                const rawYieldData = response.data.result;
+
+                if (!rawYieldData || rawYieldData.status !== "OK") {
+                    throw new Error("Invalid yield data from API");
+                }
+
+                // Convert API data using the same logic as yield.html
+                // API returns yield_per_stake in basis points (e.g., 79 = 0.79%)
+                const yieldData = {
+                    total_yield: rawYieldData.total_yield / 1e8, // Convert from atomic units
+                    average_yield_rate: rawYieldData.yield_per_stake / 100, // Convert to percentage
+                    total_staked: rawYieldData.total_staked / 1e8, // Convert from atomic units
+                    yield_distribution: rawYieldData.yield_distribution || []
+                };
+
+                console.log('[SALVIUM DEBUG] Processed yield data:', yieldData);
+
+                // Update Total Yield card
+                const totalYieldElement = document.getElementById('totalYield');
+                if (totalYieldElement) {
+                    totalYieldElement.textContent = `${Number(yieldData.total_yield).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })} SAL`;
+                }
+
+                // Update Average Yield Rate card (historical rate from last 21,600 blocks)
+                const averageYieldRateElement = document.getElementById('averageYieldRate');
+                if (averageYieldRateElement) {
+                    averageYieldRateElement.textContent = `${yieldData.average_yield_rate.toFixed(2)}%`;
+                }
+
+                // Update Yield Distribution card
+                const yieldDistributionElement = document.getElementById('yieldDistribution');
+                if (yieldDistributionElement && yieldData.yield_distribution.length > 0) {
+                    yieldDistributionElement.innerHTML = yieldData.yield_distribution
+                        .map(item => `<li>${item.type}: ${(item.yield / 1e8).toFixed(2)} SAL</li>`)
+                        .join('');
+                } else if (yieldDistributionElement) {
+                    // Show summary info if no detailed distribution available
+                    yieldDistributionElement.innerHTML = `
+                        <li>Total Staked: ${Number(yieldData.total_staked).toLocaleString('en-US', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })} SAL</li>
+                        <li>Historical Rate: ${yieldData.average_yield_rate.toFixed(2)}%</li>
+                    `;
+                }
+
+                console.log('[SALVIUM DEBUG] Yield data updated successfully');
+
+            } catch (error) {
+                console.error('[SALVIUM DEBUG] Error fetching yield data:', error);
+                
+                // Show fallback data on error
+                const totalYieldElement = document.getElementById('totalYield');
+                if (totalYieldElement) {
+                    totalYieldElement.textContent = 'Error loading';
+                }
+                
+                const averageYieldRateElement = document.getElementById('averageYieldRate');
+                if (averageYieldRateElement) {
+                    averageYieldRateElement.textContent = 'Error';
+                }
+                
+                const yieldDistributionElement = document.getElementById('yieldDistribution');
+                if (yieldDistributionElement) {
+                    yieldDistributionElement.innerHTML = '<li>Error loading yield distribution data.</li>';
+                }
+            }
+        }
+
         // Function to update the last updated timestamp
         function updateLastUpdated() {
             try {
